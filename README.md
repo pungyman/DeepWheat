@@ -1,67 +1,35 @@
 # Winter Wheat Yield Forecasting in India
 
-This repository contains the public implementation for a multimodal winter wheat yield forecasting model over the Indian Wheat Belt. The main model combines a soil-depth CNN branch with a temporal BiLSTM and self-attention branch to integrate soil properties, meteorological variables, vegetation indices, and lagged yield.
+Official implementation of ["A hybrid deep learning approach for winter wheat yield prediction: evidence from leveraging multi-source data"](https://doi.org/10.1038/s41598-026-56576-5) (*Scientific Reports*, 2026).
 
-The GitHub repository is intentionally code-only. Datasets, trained checkpoints, hyperparameter studies, and generated paper figures are kept outside GitHub and can be synchronized from the companion Hugging Face dataset repository when available.
+The model forecasts district-level winter wheat yield across the Indian Wheat Belt by combining a soil-depth CNN branch with a temporal BiLSTM and self-attention branch, integrating soil properties, meteorological variables, vegetation indices, and lagged yield.
 
-## Repository Structure
-
-```text
-.
-├── data/
-│   ├── soilgrids/        # SoilGrids acquisition and wrangling scripts
-│   ├── weather_data/     # NASA POWER weather acquisition and QA scripts
-│   └── yield_data/       # Yield-data merge/wrangling scripts
-├── src/
-│   ├── analysis/         # Paper-result analysis and plotting scripts
-│   ├── baselines/        # CNN, Transformer, parallel CNN-LSTM, and GBM baselines
-│   ├── preprocessing/    # Monthly aggregation and final dataset creation
-│   └── rnn/              # Main CNN-BiLSTM-attention model, training, HPO, SHAP
-├── hf_sync.sh            # Sync datasets, checkpoints, and HPO artifacts
-├── requirements.txt
-└── README.md
-```
+This repository is intentionally code-only. Datasets, trained checkpoints, HPO studies, and paper figures live in a companion Hugging Face repository and are fetched with `hf_sync.sh`.
 
 ## Setup
 
 ```bash
-git clone https://github.com/pungyman/crop_yield_prediction.git
-cd crop_yield_prediction
-python -m venv venv
-source venv/bin/activate
+git clone https://github.com/pungyman/A-Hybrid-Deep-Learning-Approach-for-Wheat-Yield-Forecasting.git
+cd A-Hybrid-Deep-Learning-Approach-for-Wheat-Yield-Forecasting
+python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-The training code supports CPU, CUDA, and Apple Metal where the installed PyTorch build supports them. Full model training and SHAP attribution are substantially faster on a CUDA GPU.
+Training runs on CPU, CUDA, or Apple Metal, depending on the installed PyTorch build; training and SHAP attribution are substantially faster on CUDA.
 
-## Data And Model Artifacts
-
-Large artifacts are not stored in GitHub. The helper script expects the Hugging Face CLI to be authenticated locally:
+## Artifacts
 
 ```bash
 pip install -U "huggingface_hub[cli]"
 hf auth login
-./hf_sync.sh pull
+./hf_sync.sh pull        # also: pull-data, push-models
 ```
 
-Useful variants:
+This syncs `data/datasets/final/` and `data/datasets/rf_flat/` (sequence and flattened datasets), `src/rnn/saved_models/` (checkpoints and metadata), and `experiments/hpo/` (Optuna studies).
 
-```bash
-./hf_sync.sh pull-data
-./hf_sync.sh pull
-./hf_sync.sh push-models
-```
+## Usage
 
-The script syncs these local artifact directories when present:
-
-- `data/datasets/final/` for sequence datasets used by the deep learning models.
-- `data/datasets/rf_flat/` for flattened tabular datasets used by tree baselines.
-- `src/rnn/saved_models/` for trained checkpoints and metadata.
-- `experiments/hpo/` for Optuna studies and selected hyperparameters.
-
-## Reproduction Workflow
-
-After artifacts are available locally, run the main model from `src/rnn`:
+Main model, from `src/rnn`:
 
 ```bash
 cd src/rnn
@@ -70,59 +38,42 @@ python run_inference_all_splits.py --config training_config.yaml --model-dir sav
 python run_shap_analysis.py --config shap_config.yaml
 ```
 
-The preprocessing scripts can be rerun if the raw inputs are available locally:
-
-```bash
-python src/preprocessing/get_monthly_features.py
-python src/preprocessing/create_dataset.py
-```
-
-Several scripts use relative paths that assume they are launched from their source directory. If a path is not found, run the command from the directory containing that script or adjust the YAML/path constants for your local artifact layout.
-
-## Baselines
-
-Deep learning baselines live under `src/baselines/`:
+Baselines, from `src/baselines` — CNN, Transformer, and parallel CNN-LSTM via `train_cnn1d.py` / `train_transformer.py` / `train_parallel.py` with the matching `config/*.yaml`, and tree models on the flattened dataset:
 
 ```bash
 cd src/baselines
 python train_cnn1d.py --config config/cnn1d_with_soil.yaml
-python train_cnn1d.py --config config/cnn1d_without_soil.yaml
-python train_transformer.py --config config/transformer_with_soil.yaml
-python train_parallel.py --config config/parallel_with_soil.yaml
-```
-
-Tree-based baselines use the flattened dataset:
-
-```bash
-cd src/baselines
 python train_gbm.py --model xgb --soil with --config config/xgb.yaml
-python train_gbm.py --model lgbm --soil without --config config/lgbm.yaml
-python train_gbm.py --model rf --soil with --config config/rf.yaml
 ```
 
-## Analysis Scripts
+Paper tables and figures are regenerated by the scripts in `src/analysis/` (e.g. `build_baseline_table.py`, `scatter_grid.py`, `feature_correlation.py`), which read saved metadata and prediction CSVs. Preprocessing can be rerun with `src/preprocessing/get_monthly_features.py` and `create_dataset.py` if the raw inputs are available.
 
-Analysis and plotting utilities are in `src/analysis/`. They read saved model metadata, prediction CSVs, and generated datasets, then write outputs to ignored local artifact directories.
-
-Common entry points include:
-
-```bash
-python src/analysis/build_baseline_table.py
-python src/analysis/feature_correlation.py
-python src/analysis/scatter_grid.py
-python src/analysis/persistence_baseline.py
-python src/analysis/yield_histogram.py
-```
+Several scripts use relative paths that assume they are launched from their own source directory. If a path is not found, run the command from that directory or adjust the YAML path constants.
 
 ## Data Sources
 
-This repository provides code for assembling the modeling dataset, but it does not redistribute all raw inputs. Users are responsible for complying with the terms of each data provider.
-
-- Weather features are derived from NASA POWER.
-- Soil properties are derived from SoilGrids/ISRIC.
-- Remote-sensing vegetation indices are derived from MODIS/GEE workflows.
-- District boundaries and yield statistics must be supplied according to the relevant source licenses and redistribution terms.
+This repository provides code for assembling the modeling dataset but does not redistribute all raw inputs; users are responsible for each provider's terms. Weather features come from NASA POWER, soil properties from SoilGrids/ISRIC, and vegetation indices from MODIS/GEE workflows. District boundaries and yield statistics must be supplied under the relevant source licenses.
 
 ## Citation
 
-If you use this implementation, please cite the associated paper once the final citation is available.
+If you use this implementation, please cite:
+
+> R. L, M., Punglia, S. & Joshi, S. T. A hybrid deep learning approach for winter wheat yield prediction: evidence from leveraging multi-source data. *Sci Rep* **16**, 28538 (2026). https://doi.org/10.1038/s41598-026-56576-5
+
+```bibtex
+@article{rl2026hybrid,
+  title   = {A hybrid deep learning approach for winter wheat yield prediction: evidence from leveraging multi-source data},
+  author  = {R. L, Manogna and Punglia, Shaanil and Joshi, Siddhant Tushar},
+  journal = {Scientific Reports},
+  volume  = {16},
+  number  = {1},
+  pages   = {28538},
+  year    = {2026},
+  doi     = {10.1038/s41598-026-56576-5},
+  url     = {https://doi.org/10.1038/s41598-026-56576-5}
+}
+```
+
+## License
+
+MIT — see [LICENSE](LICENSE).
