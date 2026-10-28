@@ -1,16 +1,22 @@
-# Winter Wheat Yield Forecasting in India
+# DeepWheat
+
+District-level winter wheat yield forecasting across India using weather, satellite, soil, and historical yield data.
+
+[![Observed winter wheat yields, DeepWheat predictions, and prediction residuals across India](assets/wheat-yield-maps.png)](https://www.nature.com/articles/s41598-026-56576-5/figures/6)
+
+*Observed yields, model predictions, and prediction errors for the 2023 sowing season (harvested April–May 2024). Figure 6 from [R. L., Punglia & Joshi, Scientific Reports (2026)](https://doi.org/10.1038/s41598-026-56576-5).*
 
 Official implementation of ["A hybrid deep learning approach for winter wheat yield prediction: evidence from leveraging multi-source data"](https://doi.org/10.1038/s41598-026-56576-5) (*Scientific Reports*, 2026).
 
 The model forecasts district-level winter wheat yield across the Indian Wheat Belt by combining a soil-depth CNN branch with a temporal BiLSTM and self-attention branch, integrating soil properties, meteorological variables, vegetation indices, and lagged yield.
 
-This repository is intentionally code-only. Datasets, trained checkpoints, HPO studies, and paper figures live in a companion Hugging Face repository and are fetched with `hf_sync.sh`.
+This repository contains the implementation and a featured result from the paper. Datasets, trained checkpoints, HPO studies, and additional paper figures live in a companion Hugging Face repository and are fetched with `hf_sync.sh`.
 
 ## Setup
 
 ```bash
-git clone https://github.com/pungyman/A-Hybrid-Deep-Learning-Approach-for-Wheat-Yield-Forecasting.git
-cd A-Hybrid-Deep-Learning-Approach-for-Wheat-Yield-Forecasting
+git clone https://github.com/pungyman/DeepWheat.git
+cd DeepWheat
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 ```
